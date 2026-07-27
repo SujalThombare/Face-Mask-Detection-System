@@ -1,5 +1,5 @@
 import streamlit as st
-import cv2
+
 
 from shared.data import init_state, try_connect_db, mock_detect, log_detection, toggle_saved, is_saved, live_detect
 from shared.styles import inject_css, render_sidebar
