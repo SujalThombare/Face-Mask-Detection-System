@@ -8,15 +8,14 @@ import random
 from datetime import datetime
 
 import streamlit as st
+import cv2
 import numpy as np
 
 from shared import db
-
-import cv2
-
 import tensorflow as tf
 
-model = tf.keras.models.load_model("model.keras")
+model = tf.keras.models.load_model("model1.keras")
+
 
 # ---------------------------------------------------------------------------
 # Sidebar navigation order + icons.
@@ -24,10 +23,12 @@ model = tf.keras.models.load_model("model.keras")
 # and st.switch_page(...) uses the "page" path to jump between windows.
 # ---------------------------------------------------------------------------
 NAV_ITEMS = [
-    {"label": "Home",    "icon": "🏠", "page": "app.py"},
-    {"label": "Profile", "icon": "👤", "page": "pages/1_Profile.py"},
-    {"label": "History", "icon": "🕒", "page": "pages/2_History.py"},
-    {"label": "Saved",   "icon": "🔖", "page": "pages/3_Saved.py"},
+    {"label": "Home",          "icon": "🏠", "page": "app.py"},
+    {"label": "Profile",       "icon": "👤", "page": "pages/1_Profile.py"},
+    {"label": "History",       "icon": "🕒", "page": "pages/2_History.py"},
+    {"label": "Saved",         "icon": "🔖", "page": "pages/3_Saved.py"},
+    {"label": "Visualization", "icon": "📊", "page": "pages/4_Visualization.py"},
+    {"label": "Contact Us",    "icon": "✉️", "page": "pages/5_Contact_Us.py"},
 ]
 
 
@@ -38,9 +39,10 @@ def init_state():
     defaults = {
         "logged_in": False,
         "username": "",
-        "history": [],   # list of {"filename", "result", "confidence", "timestamp"}
+        "history": [],   # list of {"filename", "result", "confidence", "timestamp", "timestamp_dt"}
         "saved": [],     # list of filenames the user starred from History
         "db_connected": None,   # None = not checked yet, True/False once we know
+        "contact_messages": [],   # session-only fallback for Contact Us when DB is unavailable
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -68,12 +70,8 @@ def try_connect_db() -> bool:
             st.session_state.db_connected = False
     return st.session_state.db_connected
 
-import cv2
-import numpy as np
-import random
 
 def mock_detect(uploaded_file) -> dict:
-
     # Support both: a file path string (for testing) and a Streamlit
     # UploadedFile object (for the real app)
     if isinstance(uploaded_file, str):
@@ -105,61 +103,23 @@ def mock_detect(uploaded_file) -> dict:
     return {"result": result, "confidence": confidence}
 
 
-def live_detect(frame):
 
-    # Convert BGR (OpenCV) to RGB
-    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    # Resize exactly as during training
-    img = cv2.resize(img, (128, 128))
-
-    # Normalize
-    img = img.astype("float32") / 255.0
-
-    # Add batch dimension
-    img = np.expand_dims(img, axis=0)
-
-    # Prediction
-    prediction = model.predict(img, verbose=0)
-
-    confidence = float(np.max(prediction) * 100)
-
-    predicted_class = np.argmax(prediction)
-
-    if predicted_class == 1:
-        result = "😷 With Mask"
-        color = (0, 255, 0)
-    else:
-        result = "❌ Without Mask"
-        color = (0, 0, 255)
-
-    # Draw prediction on live frame
-    cv2.putText(
-        frame,
-        f"{result} ({confidence:.2f}%)",
-        (20, 40),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        color,
-        2
-    )
-
-    return {
-        "result": result,
-        "confidence": confidence,
-        "frame": frame
-    }
 def log_detection(filename: str, result: str, confidence: float):
     """Record a detection -> powers the History page.
     Call this right after your real model produces a result.
     """
+    now = datetime.now()
     st.session_state.history.insert(
         0,
         {
             "filename": filename,
             "result": result,
             "confidence": confidence,
-            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+            "timestamp": now.strftime("%d %b %Y, %I:%M %p"),
+            # Kept separately (not just the formatted string above) so the
+            # Visualization page can filter "today's" detections without
+            # having to re-parse the display string.
+            "timestamp_dt": now,
         },
     )
 
@@ -179,3 +139,41 @@ def is_saved(filename: str) -> bool:
 def logout():
     st.session_state.logged_in = False
     st.session_state.username = ""
+
+
+# ---------------------------------------------------------------------------
+# Visualization page helpers
+# ---------------------------------------------------------------------------
+def get_today_stats_session() -> dict:
+    """
+    Session-only fallback for the Visualization page, used whenever the
+    database is unreachable (or as a guest, since guest detections never
+    reach SQLite). Counts today's entries out of st.session_state.history.
+    """
+    today = datetime.now().date()
+    mask = no_mask = 0
+    for entry in st.session_state.history:
+        ts = entry.get("timestamp_dt")
+        if ts is not None and ts.date() == today:
+            if entry["result"] == "Mask Detected":
+                mask += 1
+            else:
+                no_mask += 1
+    return {"total": mask + no_mask, "mask": mask, "no_mask": no_mask}
+
+
+# ---------------------------------------------------------------------------
+# Contact Us helpers
+# ---------------------------------------------------------------------------
+def submit_contact_message_session(name: str, email: str, subject: str, message: str):
+    """Session-only fallback for storing a Contact Us message when the
+    database isn't connected, so the form still works end-to-end."""
+    st.session_state.contact_messages.append(
+        {
+            "name": name,
+            "email": email,
+            "subject": subject,
+            "message": message,
+            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        }
+    )

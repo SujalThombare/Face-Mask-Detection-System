@@ -82,6 +82,16 @@ def init_db():
                 UNIQUE (username, filename)
             )
         """))
+        s.execute(text("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL,
+                subject VARCHAR(150),
+                message TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
         s.commit()
 
 
@@ -196,3 +206,50 @@ def get_saved_db(username: str):
         ttl=0,
     )
     return df["filename"].tolist()
+
+
+# ============================================================
+#  CONTACT US
+# ============================================================
+def save_contact_message(name: str, email: str, subject: str, message: str):
+    """Inserts a row into the messages table. Returns (success: bool, message: str)."""
+    conn = get_conn()
+    try:
+        with conn.session as s:
+            s.execute(
+                text(
+                    "INSERT INTO messages (name, email, subject, message) "
+                    "VALUES (:n, :e, :s, :m)"
+                ),
+                params={"n": name, "e": email, "s": subject, "m": message},
+            )
+            s.commit()
+        return True, "Your message has been sent. We'll get back to you soon."
+    except Exception as e:
+        return False, f"Could not send message: {e}"
+
+
+# ============================================================
+#  VISUALIZATION  (today's detection stats, across all users)
+# ============================================================
+def get_today_detection_stats():
+    """
+    Returns a dict {total, mask, no_mask} counting every row in the
+    detections table whose created_at date is today (UTC, since
+    CURRENT_TIMESTAMP in SQLite is UTC) — combined across every signed-in
+    user, so the Visualization page reflects the whole app, not just one
+    account.
+    """
+    conn = get_conn()
+    df = conn.query(
+        "SELECT result, COUNT(*) AS cnt FROM detections "
+        "WHERE date(created_at) = date('now') "
+        "GROUP BY result",
+        ttl=0,
+    )
+    counts = {"Mask": 0, "No Mask": 0}
+    for _, row in df.iterrows():
+        if row["result"] in counts:
+            counts[row["result"]] = int(row["cnt"])
+    total = counts["Mask"] + counts["No Mask"]
+    return {"total": total, "mask": counts["Mask"], "no_mask": counts["No Mask"]}

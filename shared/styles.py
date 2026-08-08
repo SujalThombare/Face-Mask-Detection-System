@@ -97,9 +97,65 @@ CSS = f"""
         margin: 3rem auto 0 auto;
     }}
 
-    input {{
+    input, textarea {{
         background-color: #1a1a1e !important;
         color: #e5e5e5 !important;
+    }}
+
+    /* Big number cards on the Visualization page */
+    .metric-card {{
+        background-color: #131316;
+        border: 1px solid #2a2a2e;
+        border-radius: 10px;
+        padding: 1.4rem;
+        text-align: center;
+    }}
+    .metric-card .metric-value {{
+        font-size: 2.4rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }}
+    .metric-card .metric-label {{
+        color: #9a9aa2;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-top: 0.3rem;
+    }}
+
+    /* Horizontal Mask vs No Mask comparison bar */
+    .bar-row {{
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.6rem;
+    }}
+    .bar-row .bar-label {{
+        width: 110px;
+        flex-shrink: 0;
+        font-weight: 600;
+    }}
+    .bar-track {{
+        flex-grow: 1;
+        background-color: #1a1a1e;
+        border-radius: 6px;
+        height: 22px;
+        overflow: hidden;
+        border: 1px solid #2a2a2e;
+    }}
+    .bar-fill {{
+        height: 100%;
+        border-radius: 6px 0 0 6px;
+        transition: width 0.3s ease-in-out;
+    }}
+    .bar-fill-mask {{ background-color: #3ddc84; }}
+    .bar-fill-nomask {{ background-color: {PRIMARY_RED}; }}
+    .bar-pct {{
+        width: 48px;
+        flex-shrink: 0;
+        text-align: right;
+        color: #d5d5da;
+        font-weight: 600;
     }}
 </style>
 """

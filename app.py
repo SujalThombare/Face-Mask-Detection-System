@@ -1,7 +1,6 @@
 import streamlit as st
 
-
-from shared.data import init_state, try_connect_db, mock_detect, log_detection, toggle_saved, is_saved, live_detect
+from shared.data import init_state, try_connect_db, mock_detect, log_detection, toggle_saved, is_saved
 from shared.styles import inject_css, render_sidebar
 from shared import db
 
@@ -31,7 +30,8 @@ with col1:
 
 with col2:
     st.markdown("#### 📷 Click Photo")
-    captured_file = st.camera_input("Take a photo", label_visibility="collapsed") 
+    captured_file = st.camera_input("Take a photo", label_visibility="collapsed")
+
 # Whichever input was provided (upload takes priority if both are given)
 active_file = uploaded_file or captured_file
 
@@ -49,7 +49,8 @@ else:
     st.image(active_file, width=320)
 
     if st.button("Run Detection", key="btn_run_detection"):
-       
+        # TODO: swap mock_detect() for your real model call, e.g.:
+        #   result_dict = your_model.predict(active_file)
         outcome = mock_detect(active_file)
         st.session_state["last_result"] = outcome
         log_detection(active_file.name, outcome["result"], outcome["confidence"])
@@ -67,7 +68,7 @@ else:
 
     last_result = st.session_state.get("last_result")
     if last_result:
-        css_class = "result-mask" if last_result["result"] == "Mask" else "result-nomask"
+        css_class = "result-mask" if last_result["result"] == "Mask Detected" else "result-nomask"
         st.markdown(
             f"""<div class="result-card">
                     <span class="{css_class}">{last_result['result']}</span>
@@ -82,4 +83,3 @@ else:
             st.toast(
                 "Added to Saved" if is_saved(active_file.name) else "Removed from Saved"
             )
-
