@@ -1,6 +1,5 @@
 streamlit>=1.36
 sqlalchemy>=2.0
-cv2
 tensorflow
 pandas
 numpy
