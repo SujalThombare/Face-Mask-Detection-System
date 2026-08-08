@@ -1,6 +1,8 @@
 streamlit>=1.36
 sqlalchemy>=2.0
 tensorflow
-pandas
 numpy
-opencv-python
+pandas
+matplotlib
+Pillow
+opencv-python-headless
