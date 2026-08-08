@@ -247,9 +247,12 @@ def get_today_detection_stats():
         "GROUP BY result",
         ttl=0,
     )
-    counts = {"Mask": 0, "No Mask": 0}
+    counts = {
+    "Mask Detected": 0,
+    "No Mask Detected": 0,
+}
     for _, row in df.iterrows():
         if row["result"] in counts:
             counts[row["result"]] = int(row["cnt"])
-    total = counts["Mask"] + counts["No Mask"]
-    return {"total": total, "mask": counts["Mask"], "no_mask": counts["No Mask"]}
+    total = counts["Mask Detected"] + counts["No Mask Detected"]
+    return {"total": total, "mask": counts["Mask Detected"], "no_mask": counts["No Mask Detected"]}

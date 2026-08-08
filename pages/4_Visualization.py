@@ -36,7 +36,7 @@ if db_connected:
 
 session_stats = get_today_stats_session()
 
-if stats is None:
+if stats is None or (stats["total"] == 0 and session_stats["total"] > 0):
     stats = session_stats
     source_note = (
         "Database unavailable — showing detections from this browser session only."
